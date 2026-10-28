@@ -1,5 +1,5 @@
-import { PUBLIC_API_URL } from '$env/static/public';
 <script>
+  import { PUBLIC_API_URL } from '$env/static/public';
   let backendStatus = $state("Not checked yet");
   let loading = $state(false);
   let question = $state("");
