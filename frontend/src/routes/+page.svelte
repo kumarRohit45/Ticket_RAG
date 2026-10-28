@@ -1,9 +1,10 @@
 <script>
-  import { PUBLIC_API_URL } from '$env/static/public';
+  const API_URL = import.meta.env.VITE_API_URL;
   let backendStatus = $state("Not checked yet");
   let loading = $state(false);
   let question = $state("");
   let answer = $state("");
+  /** @type {{ filename: string, page: number }[]} */
   let sources = $state([]);
   let asking = $state(false);
   let askError = $state("");
@@ -18,7 +19,7 @@
     loading = true;
 
     try {
-      const response = await fetch(`${PUBLIC_API_URL}/health`);
+      const response = await fetch(`${API_URL}/health`);
 
       if (!response.ok) {
         throw new Error("Backend returned an error.");
@@ -38,6 +39,7 @@
     }
   }
 
+  /** @param {string} sample */
   function useSampleQuestion(sample) {
     question = sample;
     askError = "";
@@ -59,7 +61,7 @@
     askError = "";
 
     try {
-      const response = await fetch(`${PUBLIC_API_URL}/ask`, {
+      const response = await fetch(`${API_URL}/ask`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json"
