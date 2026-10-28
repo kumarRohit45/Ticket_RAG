@@ -1,4 +1,4 @@
-
+import { PUBLIC_API_URL } from '$env/static/public';
 <script>
   let backendStatus = $state("Not checked yet");
   let loading = $state(false);
@@ -18,7 +18,7 @@
     loading = true;
 
     try {
-      const response = await fetch("http://localhost:8000/health");
+      const response = await fetch(`${PUBLIC_API_URL}/health`);
 
       if (!response.ok) {
         throw new Error("Backend returned an error.");
@@ -59,7 +59,7 @@
     askError = "";
 
     try {
-      const response = await fetch("http://localhost:8000/ask", {
+      const response = await fetch(`${PUBLIC_API_URL}/ask`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json"
