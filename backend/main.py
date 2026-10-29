@@ -1,10 +1,13 @@
 import os
-
+from pathlib import Path
+from fastapi.responses import FileResponse
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
 from rag_service import RAGRetriever, RAGAnswerer
+PROJECT_DIR = Path(__file__).resolve().parent.parent
+PDF_DIR = PROJECT_DIR / "data" / "pdfs"
 
 app = FastAPI(title="Ticket RAG Demo API")
 
@@ -47,6 +50,46 @@ def health_check():
         "stored_chunks": retriever.collection.count(),
     }
 
+@app.get("/documents")
+def list_documents(filename: str | None = None):
+    if filename:
+        # Only allow a filename, not a directory path.
+        if Path(filename).name != filename:
+            raise HTTPException(
+                status_code=400,
+                detail="Invalid filename."
+            )
+
+        if Path(filename).suffix.lower() != ".pdf":
+            raise HTTPException(
+                status_code=400,
+                detail="Only PDF files are allowed."
+            )
+
+        file_path = PDF_DIR / filename
+
+        if not file_path.is_file():
+            raise HTTPException(
+                status_code=404,
+                detail="PDF not found."
+            )
+
+        return FileResponse(
+            path=file_path,
+            media_type="application/pdf",
+            content_disposition_type="inline",
+        )
+
+    if not PDF_DIR.exists():
+        return {"documents": []}
+
+    documents = sorted(
+        pdf.name
+        for pdf in PDF_DIR.glob("*.pdf")
+        if pdf.is_file()
+    )
+
+    return {"documents": documents}
 
 @app.post("/ask")
 def ask_question(request: AskRequest):

@@ -99,6 +99,7 @@ class RAGAnswerer:
         self.retriever = retriever
         self.client = Groq(api_key=api_key)
 
+   
     def answer(self, question):
         question = question.strip()
 
@@ -111,8 +112,11 @@ class RAGAnswerer:
             return {
                 "answer": "I couldn't find relevant information in the support documents.",
                 "sources": [],
+                "chunks": [],
+                "source_contributions": [],
             }
 
+        # Build the context used by the LLM.
         context = "\n\n".join(
             f"[Source: {chunk['source']}, Page: {chunk['page']}]\n"
             f"{chunk['text']}"
@@ -145,6 +149,7 @@ class RAGAnswerer:
 
         answer_text = response.choices[0].message.content or ""
 
+        # Keep the existing source list, grouped by filename and page.
         sources = []
         seen = set()
 
@@ -158,9 +163,54 @@ class RAGAnswerer:
                     "page": chunk["page"],
                 })
 
+        # Return the top 5 chunks with their retrieval distances.
+        top_chunks = chunks[:5]
+
+        returned_chunks = [
+            {
+                "rank": rank,
+                "filename": chunk["source"],
+                "page": chunk["page"],
+                "chunk_index": chunk["chunk_index"],
+                "text": chunk["text"],
+                "distance": chunk["distance"],
+            }
+            for rank, chunk in enumerate(top_chunks, start=1)
+        ]
+
+        # Calculate a rank-weighted evidence share for each PDF.
+        # Rank 1 receives weight 1, rank 2 receives 1/2, etc.
+        # This is a retrieval-evidence estimate, NOT exact answer attribution.
+        source_weights = {}
+
+        for rank, chunk in enumerate(top_chunks, start=1):
+            filename = chunk["source"]
+            weight = 1.0 / rank
+
+            source_weights[filename] = (
+                source_weights.get(filename, 0.0) + weight
+            )
+
+        total_weight = sum(source_weights.values())
+
+        source_contributions = [
+            {
+                "filename": filename,
+                "percentage": round(weight / total_weight * 100, 2),
+            }
+            for filename, weight in source_weights.items()
+        ]
+
+        source_contributions.sort(
+            key=lambda item: item["percentage"],
+            reverse=True,
+        )
+
         return {
             "answer": answer_text,
             "sources": sources,
+            "chunks": returned_chunks,
+            "source_contributions": source_contributions,
         }
 
 
