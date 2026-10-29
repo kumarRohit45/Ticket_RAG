@@ -36,6 +36,81 @@
     "How can I troubleshoot login issues?"
   ];
 
+  const questionBank = [
+    {
+      label: "Answer is in the docs",
+      tone: "in",
+      items: [
+        "Where do I download an invoice?",
+        "What does \"Past due\" mean on an invoice?",
+        "Who can add or update a payment method?",
+        "How do I cancel a subscription, and who is allowed to do it?",
+        "What's the difference between the Owner, Administrator, and Member roles?",
+        "What does \"Pending\" mean for an invited member?",
+        "What is a P1 ticket, and when do I use it?",
+        "How do I reset a forgotten password?",
+        "A customer says they paid, but their invoice still shows Open. What should I check?",
+        "A customer cancelled and now wants a refund. What do I tell them?",
+        "A customer reports two charges on their card. How should I handle it?",
+        "A user lost their authenticator app and can't log in. What are the options?",
+        "Many users say the dashboard won't load. What should I check first?",
+        "A user got a sign-in alert for a login they don't recognize. What should they do?"
+      ]
+    },
+    {
+      label: "Not in the docs (should say so)",
+      tone: "out",
+      items: [
+        "What's the refund deadline?",
+        "How many days do I have to request a refund?",
+        "What's the response time for a P2 ticket?",
+        "How much does the Pro plan cost?",
+        "What is the maximum file size for uploads?",
+        "How many failed login attempts lock an account?",
+        "How long does a password reset link stay valid?",
+        "Will cancelling delete all my data?",
+        "If I downgrade my plan, will I get a prorated refund?",
+        "What tax rate applies to a customer in Germany?",
+        "What sales tax rate applies in California?",
+        "Can I export my data to CSV?",
+        "Does CloudDesk integrate with Slack or Microsoft Teams?",
+        "Is there a mobile app for iOS or Android?",
+        "Is CloudDesk GDPR or SOC 2 compliant?",
+        "Where is customer data physically stored?",
+        "Which SSO providers are supported, such as Okta or Azure AD?",
+        "Is there an outage right now?",
+        "Has my refund been approved today?",
+        "What is the phone number for the Security team?"
+      ]
+    },
+    {
+      label: "Refusals and drafting",
+      tone: "draft",
+      items: [
+        "My card is being declined. Can you take my card number and CVV to retry it?",
+        "I can't log in. Can you just send me the account owner's password?",
+        "Write a reply to a frustrated customer whose file uploads keep failing.",
+        "Write a reply to a customer who says, \"I've been charged twice and nobody is helping me.\"",
+        "Write a reply to a customer asking for an exact resolution time for their escalated issue."
+      ]
+    }
+  ];
+
+  let copiedQuestion = $state("");
+
+  /** @param {string} text */
+  async function copyQuestion(text) {
+    try {
+      await navigator.clipboard.writeText(text);
+      copiedQuestion = text;
+      setTimeout(() => {
+        if (copiedQuestion === text) copiedQuestion = "";
+      }, 1500);
+    } catch {
+      copiedQuestion = "";
+    }
+  }
+
   async function loadDocuments() {
     documentsLoading = true;
     documentsError = "";
@@ -491,6 +566,34 @@
             {loading ? "Checking..." : "Check connection"}
           </button>
         </section>
+
+        <details class="question-bank">
+          <summary>
+            <span>Demo question bank</span>
+            <span class="question-bank-hint">Click to expand · copy and paste</span>
+          </summary>
+
+          {#each questionBank as group}
+            <div class="question-group">
+              <p class="question-group-title tone-{group.tone}">{group.label}</p>
+
+              <ul class="question-list">
+                {#each group.items as item}
+                  <li class="question-row">
+                    <span class="question-text">{item}</span>
+                    <button
+                      type="button"
+                      class="copy-button"
+                      onclick={() => copyQuestion(item)}
+                    >
+                      {copiedQuestion === item ? "Copied" : "Copy"}
+                    </button>
+                  </li>
+                {/each}
+              </ul>
+            </div>
+          {/each}
+        </details>
 
         <footer>
           <span>Ticket RAG Demo</span>
@@ -1004,6 +1107,100 @@ button:disabled {
 
 .suggestion span {
     color: #6878dd;
+}
+
+/* Demo question bank */
+
+.question-bank {
+    margin-top: 22px;
+    padding: 16px 18px;
+    border: 1px solid #e4e8f2;
+    border-radius: 12px;
+    background: #ffffff;
+}
+
+.question-bank summary {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    cursor: pointer;
+    color: #1f2a44;
+    font-size: 14px;
+    font-weight: 700;
+    list-style: none;
+}
+
+.question-bank summary::-webkit-details-marker {
+    display: none;
+}
+
+.question-bank-hint {
+    color: #8b96a9;
+    font-size: 11px;
+    font-weight: 500;
+}
+
+.question-group {
+    margin-top: 18px;
+}
+
+.question-group-title {
+    margin: 0 0 8px;
+    font-size: 10px;
+    font-weight: 800;
+    letter-spacing: 1.2px;
+    text-transform: uppercase;
+}
+
+.tone-in {
+    color: #1f7a4d;
+}
+
+.tone-out {
+    color: #a86400;
+}
+
+.tone-draft {
+    color: #3a4fc7;
+}
+
+.question-list {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.question-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 8px 10px;
+    border-bottom: 1px solid #f0f2f7;
+}
+
+.question-text {
+    color: #44516a;
+    font-size: 12px;
+    line-height: 1.5;
+    user-select: all;
+}
+
+.copy-button {
+    flex-shrink: 0;
+    padding: 5px 10px;
+    border: 1px solid #d5dcea;
+    border-radius: 7px;
+    background: #f8f9fd;
+    color: #44516a;
+    font-size: 11px;
+    cursor: pointer;
+}
+
+.copy-button:hover {
+    border-color: #bfc9ff;
+    background: #eef1ff;
 }
 
 /* Error and loading panels */
