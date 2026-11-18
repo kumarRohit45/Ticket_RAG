@@ -7,3 +7,4 @@ python-dotenv
 groq
 pymupdf
 langchain-text-splitters
+psycopg[binary]

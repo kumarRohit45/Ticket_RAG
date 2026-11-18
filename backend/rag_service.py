@@ -100,12 +100,15 @@ class RAGAnswerer:
         self.client = Groq(api_key=api_key)
 
    
-    def answer(self, question):
+    def answer(self, question, conversation_history=None):
         question = question.strip()
 
         if not question:
             raise ValueError("Question cannot be empty.")
 
+        conversation_history = conversation_history or []
+
+        # Retrieve relavant support-document chunks.
         chunks = self.retriever.retrieve(question)
 
         if not chunks:
@@ -116,34 +119,61 @@ class RAGAnswerer:
                 "source_contributions": [],
             }
 
-        # Build the context used by the LLM.
+        # Build document context
         context = "\n\n".join(
             f"[Source: {chunk['source']}, Page: {chunk['page']}]\n"
             f"{chunk['text']}"
             for chunk in chunks
         )
 
+        print("Conversation history:", repr(conversation_history))
+        print("History type:", type(conversation_history))
+
+        if conversation_history is None:
+            conversation_history = []
+        
+        recent_history = list(conversation_history)[-10:]
+
+        # Build the message list for Groq.
+        messages = [
+            {
+                "role": "system",
+                "content": (
+                    "You are a CloudDesk support assistant. "
+                    "Use the conversation history to understand follow-up "
+                    "questions, references, and contxt. "
+                    "However, the supplied support documents are the source "
+                    "of truth for CloudDesk policies and factual support answers. "
+                    "Answer using only the supplied documents. "
+                    "Do not invent facts or policies. "
+                    "Conversation history helps interpret the question but "
+                    "must not be treated as evidence for policies. "
+                    "If the documents do not contain enough evidence. "
+                    "cleary say so. Be concise and helful."
+                ),
+            }
+        ]
+
+        # Add previous conversation messages.
+        for message in recent_history:
+            if message["role"] in ("user", "assistant"):
+                messages.append({
+                    "role":message["role"],
+                    "content": message["content"],
+                })
+
+        # Add the current question and retrieved documents.
+        messages.append({
+            "role":"user",
+            "content":(
+                f"Current question: {question}\n\n"
+                f"Retrieved support documents:\n{context}"
+            )
+        })
+
         response = self.client.chat.completions.create(
             model=GROQ_MODEL,
-            messages=[
-                {
-                    "role": "system",
-                    "content": (
-                        "You are a CloudDesk support assistant. "
-                        "Answer using only the supplied documents. "
-                        "Do not invent facts or policies. "
-                        "If the documents do not contain enough evidence, "
-                        "clearly say so. Be concise and helpful."
-                    ),
-                },
-                {
-                    "role": "user",
-                    "content": (
-                        f"Question: {question}\n\n"
-                        f"Documents:\n{context}"
-                    ),
-                },
-            ],
+            messages=messages,
             temperature=0.1,
         )
 
